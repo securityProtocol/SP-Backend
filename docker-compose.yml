@@ -9,21 +9,34 @@ services:
     container_name: multiproto-app
     restart: unless-stopped
 
-    # 외부 공개 금지 (다음 단계에서 Nginx가 프록시)
-    ports:
-      - "127.0.0.1:8000:8080"
+    expose:
+      - "8080"   # 문서화용. 없어도 컨테이너끼리 통신됨
 
     environment:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75
       - SERVER_FORWARD_HEADERS_STRATEGY=framework
 
-    # 건강검진 경로는 프로젝트에 맞춰 바꾸세요:
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ping || exit 1"]
+      # 내부 포트 기준(8080). app 컨테이너에 curl 설치돼 있어야 함
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/ping"]
       interval: 10s
-      timeout: 2s
+      timeout: 3s
       retries: 12
 
     networks: [appnet]
 
-networks: { appnet: {} }
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: gateway
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "8000:8000"       # 외부 진입점은 오직 Nginx
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    networks: [appnet]
+
+networks:
+  appnet: {}
