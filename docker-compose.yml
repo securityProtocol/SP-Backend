@@ -11,7 +11,7 @@ services:
 
     # 외부 공개 금지 (다음 단계에서 Nginx가 프록시)
     ports:
-      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8000:8080"
 
     environment:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75
