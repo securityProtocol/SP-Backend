@@ -25,13 +25,25 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // HTTP(S) 수신 + Actuator/Prometheus
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // MQTT v5 수신 (TLS 지원)
+    implementation 'org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5'
+
+    // CoAP 서버 + DTLS(Scandium)
+    implementation 'org.eclipse.californium:californium-core:3.8.0'
+    implementation 'org.eclipse.californium:californium-elements:3.8.0'
+    implementation 'org.eclipse.californium:scandium:3.8.0'
+
+    // (선택) OSCORE/EDHOC까지 쓸 때:
+     implementation 'org.eclipse.californium:californium-oscore:<version>'
+     implementation 'org.eclipse.californium:californium-edhoc:<version>'
+
     compileOnly 'org.projectlombok:lombok'
-    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
