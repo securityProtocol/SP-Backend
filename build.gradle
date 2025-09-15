@@ -21,25 +21,26 @@ configurations {
 }
 
 repositories {
-    mavenCentral()
+    mavenCentral() // 추가 repo 불필요
 }
 
 dependencies {
-    // HTTP(S) 수신 + Actuator/Prometheus
+    // HTTP(S)
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
-    // MQTT v5 수신 (TLS 지원)
+    // MQTT v5
     implementation 'org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5'
 
-    // CoAP 서버 + DTLS(Scandium)
-    implementation 'org.eclipse.californium:californium-core:3.8.0'
-    implementation 'org.eclipse.californium:californium-elements:3.8.0'
-    implementation 'org.eclipse.californium:scandium:3.8.0'
+    // --- CoAP/DTLS/OSCORE (Californium) ---
+    implementation platform('org.eclipse.californium:cf-bom:3.8.0') // ✅ 올바른 BOM
 
-    // (선택) OSCORE/EDHOC까지 쓸 때:
-    implementation 'org.eclipse.californium:californium-oscore:3.8.0'
-    implementation 'org.eclipse.californium:californium-edhoc:3.8.0'
+    implementation 'org.eclipse.californium:californium-core'
+    implementation 'org.eclipse.californium:scandium'        // DTLS
+    // implementation 'org.eclipse.californium:element-connector' // (선택) core가 끌어오므로 보통 불필요
+    implementation 'org.eclipse.californium:cf-oscore'       // OSCORE
+
+    // ✗ EDHOC: 중앙 저장소에 별도 모듈 없음. 이후 대안 검토.
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
