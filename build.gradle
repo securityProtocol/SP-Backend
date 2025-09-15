@@ -38,8 +38,8 @@ dependencies {
     implementation 'org.eclipse.californium:scandium:3.8.0'
 
     // (선택) OSCORE/EDHOC까지 쓸 때:
-     implementation 'org.eclipse.californium:californium-oscore:<version>'
-     implementation 'org.eclipse.californium:californium-edhoc:<version>'
+    implementation 'org.eclipse.californium:californium-oscore:3.8.0'
+    implementation 'org.eclipse.californium:californium-edhoc:3.8.0'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
