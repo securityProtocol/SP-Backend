@@ -19,7 +19,7 @@ services:
 
     # 건강검진 경로는 프로젝트에 맞춰 바꾸세요:
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/ping || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/ping || exit 1"]
       interval: 10s
       timeout: 2s
       retries: 12
