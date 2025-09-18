@@ -32,6 +32,7 @@ services:
     ports:
       - "8000:8000/tcp"
       - "8000:8000/udp"
+      - "8883:8883/tcp"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
