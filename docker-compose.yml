@@ -50,7 +50,7 @@ services:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
-      - ./mosquitto/passwords:/mosquitto/config/passwords
+      - ./mosquitto/passwords:/mosquitto/passwords
     networks: [ appnet ]
 
 networks:
