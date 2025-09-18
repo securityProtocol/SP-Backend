@@ -39,5 +39,18 @@ services:
     restart: unless-stopped
     networks: [appnet]
 
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    expose:
+      - "1883"   # 내부에서만 접근
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+      - ./mosquitto/passwords:/mosquitto/config/passwords
+    networks: [ appnet ]
+
 networks:
   appnet: {}
