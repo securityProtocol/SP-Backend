@@ -46,10 +46,10 @@ services:
     expose:
       - "1883"   # 내부에서만 접근
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/mosquitto.conf:/mosquitto/mosquitto.conf:ro
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
-      - ./mosquitto/passwords:/mosquitto/config/passwords
+      - ./mosquitto/passwords:/mosquitto/passwords
     networks: [ appnet ]
 
 networks:
