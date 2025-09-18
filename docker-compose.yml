@@ -38,6 +38,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /etc/ssl/certs/securityprotocol.dhparam:/etc/ssl/certs/securityprotocol.dhparam:ro
       - ./nginx/stream:/etc/nginx/stream.d:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
 
     restart: unless-stopped
     networks: [appnet]
