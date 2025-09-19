@@ -33,12 +33,12 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5'
 
     // --- CoAP/DTLS/OSCORE (Californium) ---
-    implementation platform('org.eclipse.californium:cf-bom:3.8.0') // ✅ 올바른 BOM
-
+    implementation platform('org.eclipse.californium:cf-bom:3.8.0')
     implementation 'org.eclipse.californium:californium-core'
-    implementation 'org.eclipse.californium:scandium'        // DTLS
-    // implementation 'org.eclipse.californium:element-connector' // (선택) core가 끌어오므로 보통 불필요
-    implementation 'org.eclipse.californium:cf-oscore'       // OSCORE
+    implementation 'org.eclipse.californium:element-connector'
+    implementation 'org.eclipse.californium:scandium'     // (옵션) DTLS
+    implementation 'org.eclipse.californium:cf-oscore'
+
 
     // ✗ EDHOC: 중앙 저장소에 별도 모듈 없음. 이후 대안 검토.
 
