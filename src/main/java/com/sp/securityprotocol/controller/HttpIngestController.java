@@ -12,6 +12,11 @@ public class HttpIngestController {
         return "pong";
     }
 
+    @GetMapping("/pong")
+    public String pong() {
+        return "ping";
+    }
+
     @PostMapping("/ingest/http")
     public ResponseEntity<String> ingest(
             @RequestBody(required = false) String body
