@@ -1,3 +1,22 @@
-spring:
-  application:
-    name: SecurityProtocol
+server:
+  port: 8080
+
+coap:
+  port: 5683
+  # OSCORE 사용 여부
+  oscore:
+    enabled: true
+
+    # 아래 키/솔트/ID들은 테스트용 값. 운영/실험에서는 실제 EDHOC로 합의해 채워넣거나,
+    # 환경변수/시크릿으로 주입 권장.
+    master-secret: "0102030405060708090A0B0C0D0E0F10" # hex
+    master-salt:   "9E7CA92223786340"                 # hex (옵션)
+    # 서버와 클라이언트의 Sender/Recipient ID는 서로 반대로 설정됨을 주의
+    server-sender-id-hex: "02"
+    server-recipient-id-hex: "01"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
