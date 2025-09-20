@@ -59,17 +59,11 @@ public class CoapServerConfig {
 
                 // 2) 별도 스레드로 진짜 'separate response' 전송
                 byte[] in  = ex.getRequestPayload();
+                log.info("payload : {} ({} bytes)", in, in.length );
                 byte[] out = (in == null) ? new byte[0] : in;
+                log.info("payload : {} ({} bytes)", out, out.length );
 
-                // Californium의 서버 Executor(없으면 직접 Executor 준비)
-                getExecutor().execute(() -> {
-                    try {
-                        ex.respond(CoAP.ResponseCode.CONTENT, out, MediaTypeRegistry.APPLICATION_OCTET_STREAM);
-                    } catch (Exception e) {
-                        // 절대 여기서 두 번째 respond 호출하지 말고, 로그만
-                        log.error("POST separate-respond failed", e);
-                    }
-                });
+                ex.respond(CoAP.ResponseCode.CONTENT, out, MediaTypeRegistry.APPLICATION_OCTET_STREAM);
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
