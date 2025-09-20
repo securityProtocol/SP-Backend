@@ -66,7 +66,8 @@ public class CoapServerConfig {
             }
 
             @Override
-            public void receiveRequest(Request request) {
+            public void receiveRequest(Request r) {
+                log.info("RX  req type={}, mid={}, token={}", r.getType(), r.getMID(), r.getTokenString());
 
             }
 
