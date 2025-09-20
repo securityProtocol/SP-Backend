@@ -33,6 +33,14 @@ public class CoapServerConfig {
             OSCoreCoapStackFactory.useAsDefault(db);
             ep.setCoapStackFactory(new OSCoreCoapStackFactory());
             log.info("CoAP OSCORE enabled (udp/{})", port);
+            // OSCORE 분기 내부에 추가 (부팅 시 1회 로깅)
+            log.info("OSCORE cfg: sID={} rID={} salt?={} secretLen={}",
+                    props.getOscore().getServerSenderIdHex(),
+                    props.getOscore().getServerRecipientIdHex(),
+                    props.getOscore().getMasterSalt()!=null,
+                    props.getOscore().getMasterSecret()!=null
+                            ? props.getOscore().getMasterSecret().replaceAll("\\s+","").length()/2 : 0);
+
         } else {
             log.info("CoAP plaintext (udp/{})", port);
         }
