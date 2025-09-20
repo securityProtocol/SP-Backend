@@ -96,6 +96,10 @@ public class CoapServerConfig {
                 resp.setPayload((body == null) ? new byte[0] : body);
                 resp.getOptions().setContentFormat(MediaTypeRegistry.TEXT_PLAIN);
 
+                if (req.getSourceContext() != null) {
+                    resp.setDestinationContext(req.getSourceContext());
+                }
+
                 // 절대 setType/setMID/setToken 하지 않기
                 ex.respond(resp);   // ★ 단 한 번만
             }
