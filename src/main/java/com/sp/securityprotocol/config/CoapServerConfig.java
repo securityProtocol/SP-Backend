@@ -75,7 +75,7 @@ public class CoapServerConfig {
         byte[] salt = p.getOscore().getMasterSalt()!=null ? hex(p.getOscore().getMasterSalt()) : null;
         byte[] sid = hex(p.getOscore().getServerSenderIdHex());
         byte[] rid = hex(p.getOscore().getServerRecipientIdHex());
-        OSCoreCtx ctx = new OSCoreCtx(ms,true,
+        OSCoreCtx ctx = new OSCoreCtx(ms,false,
                 AlgorithmID.AES_CCM_16_64_128, salt,null,
                 AlgorithmID.HKDF_HMAC_SHA_256, null, sid, rid, 32);
         HashMapCtxDB db = new HashMapCtxDB(); db.addContext(ctx); return db;
