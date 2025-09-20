@@ -49,6 +49,8 @@ public class CoapServerConfig {
         server = new CoapServer();
         server.addEndpoint(ep.build());
 
+        server.getEndpoints().forEach(e -> log.info("EP BOUND = {}", e.getAddress())); // ★ 추가
+
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
                 byte[] in = ex.getRequestPayload();     // OSCORE로 이미 복호화된 평문
