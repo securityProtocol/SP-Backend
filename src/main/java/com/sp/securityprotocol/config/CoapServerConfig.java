@@ -2,10 +2,7 @@ package com.sp.securityprotocol.config;
 
 import jakarta.annotation.PreDestroy;
 import org.eclipse.californium.core.*;
-import org.eclipse.californium.core.coap.CoAP;
-import org.eclipse.californium.core.coap.MediaTypeRegistry;
-import org.eclipse.californium.core.coap.Request;
-import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.coap.*;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.oscore.*;
@@ -13,6 +10,7 @@ import org.eclipse.californium.cose.AlgorithmID;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -49,23 +47,51 @@ public class CoapServerConfig {
         }
 
         server = new CoapServer();
-        server.addEndpoint(ep.build());
+        CoapEndpoint endpoint = ep.build();
+        endpoint.addInterceptor(new MessageInterceptor() {
+            @Override
+            public void sendRequest(Request request) {
+
+            }
+
+            @Override
+            public void sendResponse(Response r) {
+                log.info("SERIALIZE sendResponse type={}, mid={}, token={}",
+                        r.getType(), r.getMID(), r.getTokenString());
+            }
+
+            @Override
+            public void sendEmptyMessage(EmptyMessage message) {
+
+            }
+
+            @Override
+            public void receiveRequest(Request request) {
+
+            }
+
+            @Override
+            public void receiveResponse(Response response) {
+
+            }
+
+            @Override
+            public void receiveEmptyMessage(EmptyMessage message) {
+
+            }
+        });
+        server.addEndpoint(endpoint);
 
         server.getEndpoints().forEach(e -> log.info("EP BOUND = {}", e.getAddress())); // ★ 추가
 
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
-                ex.accept();
-
-                // 2) 별도 스레드로 진짜 'separate response' 전송
-                byte[] in  = ex.getRequestPayload();
-                log.info("payload : {} ({} bytes)", in, in.length );
-                byte[] out = (in == null) ? new byte[0] : in;
-                log.info("payload : {} ({} bytes)", out, out.length );
-
-                ex.respond(CoAP.ResponseCode.CONTENT,
-                        out,
-                        MediaTypeRegistry.TEXT_PLAIN);
+                byte[] body = ex.getRequestPayload();
+                ex.respond(
+                        CoAP.ResponseCode.CONTENT,
+                        (body == null) ? new byte[0] : body,
+                        MediaTypeRegistry.TEXT_PLAIN
+                );
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
