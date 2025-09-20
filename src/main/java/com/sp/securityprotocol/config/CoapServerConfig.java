@@ -86,23 +86,24 @@ public class CoapServerConfig {
         server.getEndpoints().forEach(e -> log.info("EP BOUND = {}", e.getAddress())); // ★ 추가
 
         server.add(new CoapResource("echo") {
-            @Override public void handlePOST(CoapExchange ex) {
+            @Override
+            public void handlePOST(CoapExchange ex) {
                 Request req = ex.advanced().getRequest();
 
-                // ★ 요청으로부터 응답 생성 → Token/Type 연동 보장
-                Response resp = Response.createResponse(req, CoAP.ResponseCode.CONTENT);
-
+                Response rsp = new Response(CoAP.ResponseCode.CONTENT);
                 byte[] body = ex.getRequestPayload();
-                resp.setPayload((body == null) ? new byte[0] : body);
-                resp.getOptions().setContentFormat(MediaTypeRegistry.TEXT_PLAIN);
+                rsp.setPayload(body == null ? new byte[0] : body);
+                rsp.getOptions().setContentFormat(MediaTypeRegistry.TEXT_PLAIN);
 
-                if (req.getSourceContext() != null) {
-                    resp.setDestinationContext(req.getSourceContext());
-                }
+                // ★ 워크어라운드: 요청의 타입/ MID / 토큰을 확실히 복사
+                rsp.setType(CoAP.Type.ACK);               // piggyback (요청이 CON일 때)
+                rsp.setMID(req.getMID());                 // 요청 MID 재사용
+                rsp.setToken(req.getToken());             // 토큰 일치
 
-                // 절대 setType/setMID/setToken 하지 않기
-                ex.respond(resp);   // ★ 단 한 번만
+                // OSCORE 사용 중이면 Object-Security는 레이어가 붙인다 (여기서 직접 만지지 말 것)
+                ex.advanced().sendResponse(rsp);
             }
+
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
         });
