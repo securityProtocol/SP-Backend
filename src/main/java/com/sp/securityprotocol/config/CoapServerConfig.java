@@ -65,6 +65,7 @@ public class CoapServerConfig {
                     Integer cf = ex.getRequestOptions().getContentFormat();
 
                     Response resp = new Response(CoAP.ResponseCode.CONTENT);
+                    resp.setType(CoAP.Type.ACK);            // ★ piggyback ACK로 고정
                     resp.setPayload(out);                   // ★ 절대 null 금지
                     if (cf != null) resp.getOptions().setContentFormat(cf);
 
