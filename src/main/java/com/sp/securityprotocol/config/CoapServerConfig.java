@@ -3,6 +3,7 @@ package com.sp.securityprotocol.config;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.californium.core.*;
 import org.eclipse.californium.core.coap.CoAP;
+import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.oscore.*;
@@ -50,19 +51,39 @@ public class CoapServerConfig {
 
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
+                byte[] in = ex.getRequestPayload();     // OSCORE로 이미 복호화된 평문
                 log.info("POST /echo!!!!!");
-                byte[] in = ex.getRequestPayload();
-                byte[] out = (in == null ? new byte[0] : in);
+
                 Integer cf = ex.getRequestOptions().getContentFormat();
                 if (cf != null) {
-                    ex.respond(CoAP.ResponseCode.CONTENT, out, cf); // ✅ content-format 지정 오버로드
-                } else {
-                    ex.respond(CoAP.ResponseCode.CONTENT, out);
+                    log.info("성공 응답 직전");
+                    ex.respond(CoAP.ResponseCode.CONTENT, in, cf);
                 }
+                else {
+                    log.info("실패 응답 직전");
+                    ex.respond(CoAP.ResponseCode.CONTENT, in);
+                }
+
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
         });
+//
+//        server.add(new CoapResource("echo") {
+//            @Override public void handlePOST(CoapExchange ex) {
+//                log.info("POST /echo!!!!!");
+//                byte[] in = ex.getRequestPayload();
+//                byte[] out = (in == null ? new byte[0] : in);
+//                Integer cf = ex.getRequestOptions().getContentFormat();
+//                if (cf != null) {
+//                    ex.respond(CoAP.ResponseCode.CONTENT, out, cf); // ✅ content-format 지정 오버로드
+//                } else {
+//                    ex.respond(CoAP.ResponseCode.CONTENT, out);
+//                }
+//            }
+//            @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
+//            @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
+//        });
 
         server.start();
         return server;
