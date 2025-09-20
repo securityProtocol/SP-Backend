@@ -3,6 +3,7 @@ package com.sp.securityprotocol.config;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.californium.core.*;
 import org.eclipse.californium.core.coap.CoAP;
+import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -53,23 +54,31 @@ public class CoapServerConfig {
 
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
-                byte[] in = ex.getRequestPayload();     // OSCORE로 이미 복호화된 평문
-                log.info("POST /echo!!!!!");
+                try {
+                    final byte[] in = ex.getRequestPayload();
+                    final byte[] out = (in == null) ? new byte[0] : in;
 
-                Integer cf = ex.getRequestOptions().getContentFormat();
-                if (cf != null) {
-                    log.info("성공 응답 직전");
-                    ex.respond(CoAP.ResponseCode.CONTENT, in, cf);
-                }
-                else {
-                    log.info("실패 응답 직전");
-                    ex.respond(CoAP.ResponseCode.CONTENT, in);
-                }
+                    // 디버깅: 요청 MID/토큰 찍기
+                    Request req = ex.advanced().getRequest();
+                    log.info("REQ mid={}, token={}", req.getMID(), req.getTokenString());
 
+                    Integer cf = ex.getRequestOptions().getContentFormat();
+
+                    Response resp = new Response(CoAP.ResponseCode.CONTENT);
+                    resp.setPayload(out);                   // ★ 절대 null 금지
+                    if (cf != null) resp.getOptions().setContentFormat(cf);
+
+                    log.info("정상 응답 직전!!!!");
+                    ex.respond(resp);                       // ★ 오버로드 대신 명시적 Response 사용
+                } catch (Exception e) {
+                    // ★ 여기서 추가 respond() 금지 (중복 응답 방지)
+                    log.error("echo POST failed", e);
+                }
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
         });
+
 //
 //        server.add(new CoapResource("echo") {
 //            @Override public void handlePOST(CoapExchange ex) {
