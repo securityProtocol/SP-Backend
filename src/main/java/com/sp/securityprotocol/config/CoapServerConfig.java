@@ -50,6 +50,7 @@ public class CoapServerConfig {
 
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
+                log.info("POST /echo!!!!!");
                 byte[] in = ex.getRequestPayload();
                 byte[] out = (in == null ? new byte[0] : in);
                 Integer cf = ex.getRequestOptions().getContentFormat();
