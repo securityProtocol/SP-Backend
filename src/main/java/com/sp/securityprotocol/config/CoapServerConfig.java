@@ -86,12 +86,17 @@ public class CoapServerConfig {
 
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
+                Request req = ex.advanced().getRequest();
+
+                // ★ 요청으로부터 응답 생성 → Token/Type 연동 보장
+                Response resp = Response.createResponse(req, CoAP.ResponseCode.CONTENT);
+
                 byte[] body = ex.getRequestPayload();
-                ex.respond(
-                        CoAP.ResponseCode.CONTENT,
-                        (body == null) ? new byte[0] : body,
-                        MediaTypeRegistry.TEXT_PLAIN
-                );
+                resp.setPayload((body == null) ? new byte[0] : body);
+                resp.getOptions().setContentFormat(MediaTypeRegistry.TEXT_PLAIN);
+
+                // 절대 setType/setMID/setToken 하지 않기
+                ex.respond(resp);   // ★ 단 한 번만
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
