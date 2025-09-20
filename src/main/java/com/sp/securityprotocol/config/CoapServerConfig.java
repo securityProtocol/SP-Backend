@@ -63,7 +63,9 @@ public class CoapServerConfig {
                 byte[] out = (in == null) ? new byte[0] : in;
                 log.info("payload : {} ({} bytes)", out, out.length );
 
-                ex.respond(CoAP.ResponseCode.CONTENT, out, MediaTypeRegistry.APPLICATION_OCTET_STREAM);
+                ex.respond(CoAP.ResponseCode.CONTENT,
+                        out,
+                        MediaTypeRegistry.TEXT_PLAIN);
             }
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
