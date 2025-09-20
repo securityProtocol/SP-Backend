@@ -75,9 +75,19 @@ public class CoapServerConfig {
         byte[] salt = p.getOscore().getMasterSalt()!=null ? hex(p.getOscore().getMasterSalt()) : null;
         byte[] sid = hex(p.getOscore().getServerSenderIdHex());
         byte[] rid = hex(p.getOscore().getServerRecipientIdHex());
-        OSCoreCtx ctx = new OSCoreCtx(ms,true,
-                AlgorithmID.AES_CCM_16_64_128, salt,null,
-                AlgorithmID.HKDF_HMAC_SHA_256, null, sid, rid, 32);
+        OSCoreCtx ctx = new OSCoreCtx(
+                ms,
+                false,                              // 서버 역할
+                AlgorithmID.AES_CCM_16_64_128,      // AEAD
+                sid,                                // sender_id
+                rid,                                // recipient_id
+                AlgorithmID.HKDF_HMAC_SHA_256,      // HKDF
+                32,                                 // replay_size
+                salt,                               // master_salt
+                null,                               // contextId (없음)
+                0                                   // maxUnfragmentedSize (0=기본)
+        );
+
         HashMapCtxDB db = new HashMapCtxDB(); db.addContext(ctx); return db;
     }
 
