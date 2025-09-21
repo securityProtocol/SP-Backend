@@ -88,15 +88,17 @@ public class CoapServerConfig {
         server.add(new CoapResource("echo") {
             @Override
             public void handlePOST(CoapExchange ex) {
-                byte[] body = ex.getRequestPayload();
-                // 요청의 Content-Format을 그대로 돌려주기 (없으면 OCTET_STREAM)
-                Integer cf = ex.getRequestOptions().getContentFormat();
-                int contentFormat = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
+                try {
+                    byte[] body = ex.getRequestPayload();
+                    Integer cf = ex.getRequestOptions().getContentFormat();
+                    int contentFormat = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
 
-                // 메타(Type/MID/Token)는 손대지 말고, 평범한 respond 사용
-                ex.respond(CoAP.ResponseCode.CONTENT,
-                        (body != null) ? body : new byte[0],
-                        contentFormat);
+                    // ⭐ 단 한 줄: 스택이 Type/MID/Token 전부 알아서 처리
+                    ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], contentFormat);
+                } catch (Throwable t) {
+                    // 실패해도 한 번만!
+                    ex.respond(CoAP.ResponseCode.INTERNAL_SERVER_ERROR);
+                }
             }
 
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }

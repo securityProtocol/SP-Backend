@@ -3,15 +3,10 @@ server:
 
 coap:
   port: 5683
-  # OSCORE 사용 여부
   oscore:
     enabled: true
-
-    # 아래 키/솔트/ID들은 테스트용 값. 운영/실험에서는 실제 EDHOC로 합의해 채워넣거나,
-    # 환경변수/시크릿으로 주입 권장.
-    master-secret: "0102030405060708090A0B0C0D0E0F10" # hex
-    master-salt:   "9E7CA92223786340"                 # hex (옵션)
-    # 서버와 클라이언트의 Sender/Recipient ID는 서로 반대로 설정됨을 주의
+    master-secret: "0102030405060708090A0B0C0D0E0F10"  # hex
+    master-salt:   "9E7CA92223786340"                  # hex (optional)
     server-sender-id-hex: "02"
     server-recipient-id-hex: "01"
 
@@ -23,13 +18,21 @@ management:
 
 logging:
   level:
-    org:
-      eclipse:
-        californium=DEBUG:
+    # 우리 패키지(로그 찍는 곳)
+    com.sp.securityprotocol: DEBUG
 
-        californium:
-          oscore=TRACE:
+    # Californium 핵심
+    org.eclipse.californium: INFO
+    org.eclipse.californium.elements: DEBUG
 
-          core:
-            network:
-              serialization=DEBUG:
+    # 🔎 직렬화(UDP 바이트 만들기 직전 상태)
+    org.eclipse.californium.core.network.serialization: TRACE
+
+    # 🔎 매칭/신뢰/스택 경로 (Type/MID/Token이 언제 셋업되는지 확인)
+    org.eclipse.californium.core.network.matcher: TRACE
+    org.eclipse.californium.core.network.stack.ReliabilityLayer: TRACE
+    org.eclipse.californium.core.network.stack.BaseCoapStack: TRACE
+    org.eclipse.californium.core.network.CoapEndpoint: DEBUG
+
+    # 🔐 OSCORE 레이어 흐름
+    org.eclipse.californium.oscore: DEBUG
