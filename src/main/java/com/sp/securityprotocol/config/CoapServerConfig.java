@@ -48,39 +48,7 @@ public class CoapServerConfig {
 
         server = new CoapServer();
         CoapEndpoint endpoint = ep.build();
-        endpoint.addInterceptor(new MessageInterceptor() {
-            @Override
-            public void sendRequest(Request request) {
 
-            }
-
-            @Override
-            public void sendResponse(Response r) {
-                log.info("SERIALIZE sendResponse type={}, mid={}, token={}",
-                        r.getType(), r.getMID(), r.getTokenString());
-            }
-
-            @Override
-            public void sendEmptyMessage(EmptyMessage message) {
-
-            }
-
-            @Override
-            public void receiveRequest(Request r) {
-                log.info("RX  req type={}, mid={}, token={}", r.getType(), r.getMID(), r.getTokenString());
-
-            }
-
-            @Override
-            public void receiveResponse(Response response) {
-
-            }
-
-            @Override
-            public void receiveEmptyMessage(EmptyMessage message) {
-
-            }
-        });
         server.addEndpoint(endpoint);
 
         server.getEndpoints().forEach(e -> log.info("EP BOUND = {}", e.getAddress())); // ★ 추가
