@@ -88,20 +88,15 @@ public class CoapServerConfig {
         server.add(new CoapResource("echo") {
             @Override
             public void handlePOST(CoapExchange ex) {
-                Request req = ex.advanced().getRequest();
-
-                Response rsp = new Response(CoAP.ResponseCode.CONTENT);
                 byte[] body = ex.getRequestPayload();
-                rsp.setPayload(body == null ? new byte[0] : body);
-                rsp.getOptions().setContentFormat(MediaTypeRegistry.TEXT_PLAIN);
+                // 요청의 Content-Format을 그대로 돌려주기 (없으면 OCTET_STREAM)
+                Integer cf = ex.getRequestOptions().getContentFormat();
+                int contentFormat = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
 
-                // ★ 워크어라운드: 요청의 타입/ MID / 토큰을 확실히 복사
-                rsp.setType(CoAP.Type.ACK);               // piggyback (요청이 CON일 때)
-                rsp.setMID(req.getMID());                 // 요청 MID 재사용
-                rsp.setToken(req.getToken());             // 토큰 일치
-
-                // OSCORE 사용 중이면 Object-Security는 레이어가 붙인다 (여기서 직접 만지지 말 것)
-                ex.advanced().sendResponse(rsp);
+                // 메타(Type/MID/Token)는 손대지 말고, 평범한 respond 사용
+                ex.respond(CoAP.ResponseCode.CONTENT,
+                        (body != null) ? body : new byte[0],
+                        contentFormat);
             }
 
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
