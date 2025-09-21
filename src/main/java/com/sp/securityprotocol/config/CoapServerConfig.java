@@ -10,7 +10,6 @@ import org.eclipse.californium.cose.AlgorithmID;
 import org.slf4j.Logger; import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
-import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -25,72 +24,67 @@ public class CoapServerConfig {
 
     @Bean
     public CoapServer coapServer(CoapProps props) throws OSException {
-        int port = props.getPort();
+        // 1) 서버/엔드포인트가 같은 Configuration을 반드시 공유
+        org.eclipse.californium.elements.config.Configuration cfg =
+                org.eclipse.californium.elements.config.Configuration.getStandard();
+
+        final int port = props.getPort();
+
+        // 2) OSCORE 팩토리 설정은 "한 방식"만 사용 (static or per-endpoint 중 하나만)
         CoapEndpoint.Builder ep = new CoapEndpoint.Builder()
+                .setConfiguration(cfg)
                 .setInetSocketAddress(new InetSocketAddress(port));
 
         if (props.getOscore().isEnabled()) {
             OSCoreCtxDB db = buildOscoreContext(props);
+
+            // 옵션 A(권장): static 등록만 사용
             OSCoreCoapStackFactory.useAsDefault(db);
-            ep.setCoapStackFactory(new OSCoreCoapStackFactory());
+
+            // 옵션 B: per-endpoint 팩토리 사용 시엔 아래 한 줄만 쓰고 위 useAsDefault()는 빼세요.
+            // ep.setCoapStackFactory(new OSCoreCoapStackFactory(db));
+
             log.info("CoAP OSCORE enabled (udp/{})", port);
-            // OSCORE 분기 내부에 추가 (부팅 시 1회 로깅)
             log.info("OSCORE cfg: sID={} rID={} salt?={} secretLen={}",
                     props.getOscore().getServerSenderIdHex(),
                     props.getOscore().getServerRecipientIdHex(),
                     props.getOscore().getMasterSalt()!=null,
                     props.getOscore().getMasterSecret()!=null
                             ? props.getOscore().getMasterSecret().replaceAll("\\s+","").length()/2 : 0);
-
         } else {
             log.info("CoAP plaintext (udp/{})", port);
         }
 
-        server = new CoapServer();
-        CoapEndpoint endpoint = ep.build();
+        // 3) 서버도 같은 cfg로 생성
+        server = new CoapServer(cfg);
 
+        // 4) 엔드포인트 1개만 추가
+        CoapEndpoint endpoint = ep.build();
         server.addEndpoint(endpoint);
 
-        server.getEndpoints().forEach(e -> log.info("EP BOUND = {}", e.getAddress())); // ★ 추가
+        // 5) 커스텀 인터셉터 "절대" 추가하지 말고, 관찰은 Tracer만
+        endpoint.addInterceptor(new org.eclipse.californium.core.network.interceptors.MessageTracer());
 
+        // 6) 리소스 등록 (respond는 한 번만, 이후 즉시 return)
         server.add(new CoapResource("echo") {
-            @Override
-            public void handlePOST(CoapExchange ex) {
+            @Override public void handlePOST(CoapExchange ex) {
                 try {
                     byte[] body = ex.getRequestPayload();
                     Integer cf = ex.getRequestOptions().getContentFormat();
-                    int contentFormat = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
-
-                    // ⭐ 단 한 줄: 스택이 Type/MID/Token 전부 알아서 처리
-                    ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], contentFormat);
+                    int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
+                    ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
+                    return;  // ✅ 이중응답/후속 예외 차단
                 } catch (Throwable t) {
-                    // 실패해도 한 번만!
                     ex.respond(CoAP.ResponseCode.INTERNAL_SERVER_ERROR);
+                    return;
                 }
             }
-
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
         });
 
-//
-//        server.add(new CoapResource("echo") {
-//            @Override public void handlePOST(CoapExchange ex) {
-//                log.info("POST /echo!!!!!");
-//                byte[] in = ex.getRequestPayload();
-//                byte[] out = (in == null ? new byte[0] : in);
-//                Integer cf = ex.getRequestOptions().getContentFormat();
-//                if (cf != null) {
-//                    ex.respond(CoAP.ResponseCode.CONTENT, out, cf); // ✅ content-format 지정 오버로드
-//                } else {
-//                    ex.respond(CoAP.ResponseCode.CONTENT, out);
-//                }
-//            }
-//            @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
-//            @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
-//        });
-
         server.start();
+        log.info("EP BOUND = {}", endpoint.getAddress());
         return server;
     }
 
@@ -103,18 +97,10 @@ public class CoapServerConfig {
         byte[] sid = hex(p.getOscore().getServerSenderIdHex());
         byte[] rid = hex(p.getOscore().getServerRecipientIdHex());
         OSCoreCtx ctx = new OSCoreCtx(
-                ms,
-                false,                              // 서버 역할
-                AlgorithmID.AES_CCM_16_64_128,      // AEAD
-                sid,                                // sender_id
-                rid,                                // recipient_id
-                AlgorithmID.HKDF_HMAC_SHA_256,      // HKDF
-                32,                                 // replay_size
-                salt,                               // master_salt
-                null,                               // contextId (없음)
-                0                                   // maxUnfragmentedSize (0=기본)
+                ms, false, AlgorithmID.AES_CCM_16_64_128,
+                sid, rid, AlgorithmID.HKDF_HMAC_SHA_256,
+                32, salt, null, 0
         );
-
         HashMapCtxDB db = new HashMapCtxDB(); db.addContext(ctx); return db;
     }
 
@@ -144,4 +130,4 @@ public class CoapServerConfig {
             public void setServerRecipientIdHex(String s){serverRecipientIdHex=s;}
         }
     }
-}
+    }
