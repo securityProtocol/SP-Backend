@@ -75,7 +75,7 @@ public class CoapServerConfig {
 
                 // 페이로드만 넘기면 Californium이 Type/MID/Token을 자동 세팅하고
                 // OSCORE 레이어가 보호 응답으로 감쌉니다.
-                exchange.respond(CoAP.ResponseCode.CONTENT, "hello");
+                exchange.respond("hello");
             }
 
 
