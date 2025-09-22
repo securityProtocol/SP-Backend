@@ -80,6 +80,7 @@ public class CoapServerConfig {
                         Thread.sleep(100); // 작업 지연을 시뮬레이션
                         Response response = new Response(CoAP.ResponseCode.CREATED);
                         response.setPayload("hello");
+                        log.info("echo response: {}", Utils.toHexString(response.getPayload()));
                         exchange.respond(response);
                     } catch (InterruptedException e) {
                         log.error("Response thread interrupted", e);

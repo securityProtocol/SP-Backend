@@ -32,7 +32,7 @@ logging:
     org.eclipse.californium.core.network.matcher: TRACE
     org.eclipse.californium.core.network.stack.ReliabilityLayer: TRACE
     org.eclipse.californium.core.network.stack.BaseCoapStack: TRACE
-    org.eclipse.californium.core.network.CoapEndpoint: DEBUG
+    org.eclipse.californium.core.network.CoapEndpoint: TRACE
 
     # 🔐 OSCORE 레이어 흐름
-    org.eclipse.californium.oscore: DEBUG
+    org.eclipse.californium.oscore: TRACE
