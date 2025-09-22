@@ -70,16 +70,21 @@ public class CoapServerConfig {
         server.add(new CoapResource("echo") {
             @Override
             public void handlePOST(CoapExchange exchange) {
-                // (선택) 오래 걸리면 먼저 수락
-                // exchange.accept();
+                // 먼저 빈 ACK를 보내 요청을 수락
+                exchange.accept();
 
-                // 페이로드만 넘기면 Californium이 Type/MID/Token을 자동 세팅하고
-                // OSCORE 레이어가 보호 응답으로 감쌉니다.
-                exchange.respond("hello");
-            }
-
-
-        });
+                // 실제 응답은 별도 스레드 또는 비동기적으로 처리
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(100); // 작업 지연을 시뮬레이션
+                        Response response = new Response(CoAP.ResponseCode.CREATED);
+                        response.setPayload("hello");
+                        exchange.respond(response);
+                    } catch (InterruptedException e) {
+                        log.error("Response thread interrupted", e);
+                    }
+                }).start();
+            }});
 
         server.start();
         log.info("EP BOUND = {}", endpoint.getAddress());
