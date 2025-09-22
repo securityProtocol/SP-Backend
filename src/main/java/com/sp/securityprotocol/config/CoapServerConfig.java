@@ -81,6 +81,7 @@ public class CoapServerConfig {
                         Response response = new Response(CoAP.ResponseCode.CREATED);
                         response.setPayload("hello");
                         log.info("echo response: {}", Utils.toHexString(response.getPayload()));
+                        log.info("echo response: {}", response.getMID());
                         exchange.respond(response);
                     } catch (InterruptedException e) {
                         log.error("Response thread interrupted", e);
