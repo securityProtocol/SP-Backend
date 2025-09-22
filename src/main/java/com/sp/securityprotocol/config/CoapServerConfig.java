@@ -36,7 +36,7 @@ public class CoapServerConfig {
 
         @Override
         public void sendResponse(Response response) {
-
+            log.info("sendResponse {}", response.getMID());
         }
 
         @Override
@@ -118,7 +118,6 @@ public class CoapServerConfig {
                     response.setPayload("hello");
                     log.info("echo response: {}", Utils.toHexString(response.getPayload()));
                     log.info("echo response: {}", response.getMID());
-                    MidTokenLogger.log("echo", response);
                     exchange.respond(response);
                 } catch (InterruptedException e) {
                     log.error("Response thread interrupted", e);
