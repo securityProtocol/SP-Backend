@@ -69,29 +69,16 @@ public class CoapServerConfig {
         // 6) 리소스 등록 (respond는 한 번만; MID/Token/ACK은 스택이 처리)
         server.add(new CoapResource("echo") {
             @Override
-            public void handlePOST(CoapExchange ex) {
-                byte[] body = ex.getRequestPayload();
-                Integer cf = ex.getRequestOptions().getContentFormat();
-                int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
+            public void handlePOST(CoapExchange exchange) {
+                // (선택) 오래 걸리면 먼저 수락
+                // exchange.accept();
 
-                Request req = ex.advanced().getRequest();
-
-                Response resp = new Response(CoAP.ResponseCode.CONTENT);
-                resp.setPayload(body != null ? body : new byte[0]);
-                resp.getOptions().setContentFormat(fmt);
-
-                if (req.isConfirmable()) {
-                    resp.setType(CoAP.Type.ACK);        // piggyback ACK
-                    resp.setMID(req.getMID());          // ★ 요청 MID 복사
-                }
-                resp.setToken(req.getToken());          // ★ 요청 토큰 복사
-
-                ex.advanced().sendResponse(resp);       // advanced 경로로 전송
+                // 페이로드만 넘기면 Californium이 Type/MID/Token을 자동 세팅하고
+                // OSCORE 레이어가 보호 응답으로 감쌉니다.
+                exchange.respond(CoAP.ResponseCode.CONTENT, "hello");
             }
-            @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
-            @Override public void handleGET(CoapExchange ex) {
-                ex.respond(CoAP.ResponseCode.CONTENT, "echo-get", MediaTypeRegistry.TEXT_PLAIN);
-            }
+
+
         });
 
         server.start();
