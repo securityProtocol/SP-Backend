@@ -7,6 +7,7 @@ import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.CoAP;
 import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.config.CoapConfig;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -33,7 +34,7 @@ public class CoapServerConfig {
     @Bean
     public CoapServer coapServer(CoapProps props) throws OSException {
         // 1) 공용 Configuration
-        Configuration cfg = Configuration.getStandard();
+        Configuration cfg = Configuration.createStandardWithoutFile();
         final int port = props.getPort();
 
         // 2) 엔드포인트 빌더 (공용 cfg 사용)
