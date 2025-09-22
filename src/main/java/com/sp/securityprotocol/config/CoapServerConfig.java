@@ -109,11 +109,17 @@ public class CoapServerConfig {
             public void handlePOST(CoapExchange exchange) {
                 // 실제 응답은 별도 스레드 또는 비동기적으로 처리
 
-                try {
-                    exchange.respond(CoAP.ResponseCode.CONTENT, "이것은 보호된 응답입니다.");
-                } catch (Exception e) {
-                    log.error("Response thread interrupted", e);
+                byte[] payload = exchange.getRequestPayload();
+                int contentFormat = exchange.getRequestOptions().getContentFormat(); // -1이면 미지정
+
+                Response resp = new Response(CoAP.ResponseCode.CONTENT);
+                resp.setPayload(payload);
+                if (contentFormat != MediaTypeRegistry.UNDEFINED) {
+                    resp.getOptions().setContentFormat(contentFormat);
                 }
+
+                // Token/MID/type은 스택이 자동 세팅
+                exchange.respond(resp);
             }});
 
         server.start();
