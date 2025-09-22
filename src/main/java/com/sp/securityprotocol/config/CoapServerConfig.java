@@ -73,21 +73,37 @@ public class CoapServerConfig {
                 Integer cf = ex.getRequestOptions().getContentFormat();
                 int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
 
-                if (ex.advanced().getRequest().isConfirmable()) {
-                    ex.accept(); // 빈 ACK 먼저 (separate 강제)
+                final Request req = ex.advanced().getRequest();
+                log.info("echo: RX mid={}, tok={}", req.getMID(), Utils.toHexString(req.getToken().getBytes()));
+
+                if (req.isConfirmable()) {
+                    ex.accept();
+                    log.info("echo: sent Empty ACK for mid={}", req.getMID());
                 }
 
-                java.util.concurrent.ScheduledExecutorService exec = (java.util.concurrent.ScheduledExecutorService) getExecutor(); // ✅ CoapResource 메서드
-                if (exec == null) {                    // 이론상 handler 시점엔 거의 null 아님이 정상
-                    ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
-                    return;
-                }
-                exec.execute(() -> {
+                java.util.concurrent.ScheduledExecutorService exec = (java.util.concurrent.ScheduledExecutorService) getExecutor();
+                if (exec == null) {
+                    log.warn("echo: getExecutor()==null, responding inline (still separate after accept)");
                     try {
                         ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
-                    } catch (Throwable ignore) { /* 완료/타임아웃이면 무시 */ }
+                        log.info("echo: respond() inline returned");
+                    } catch (Throwable t) {
+                        log.error("echo: respond() inline FAILED", t);
+                    }
+                    return;
+                }
+
+                exec.execute(() -> {
+                    try {
+                        log.info("echo: about to respond (separate) for mid={}, tok={}", req.getMID(), Utils.toHexString(req.getToken().getBytes()));
+                        ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
+                        log.info("echo: respond() returned OK");
+                    } catch (Throwable t) {
+                        log.error("echo: respond() FAILED", t);
+                    }
                 });
             }
+
 
 
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
