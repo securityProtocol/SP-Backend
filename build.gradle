@@ -33,7 +33,7 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5'
 
     // --- CoAP/DTLS/OSCORE (Californium) ---
-    implementation platform('org.eclipse.californium:cf-bom:3.8.0')
+    implementation platform('org.eclipse.californium:cf-bom:3.14.0')
     implementation 'org.eclipse.californium:californium-core'
     implementation 'org.eclipse.californium:element-connector'
     implementation 'org.eclipse.californium:scandium'     // (옵션) DTLS
