@@ -3,12 +3,10 @@ package com.sp.securityprotocol.config;
 import jakarta.annotation.PreDestroy;
 import org.eclipse.californium.core.CoapServer;
 import org.eclipse.californium.core.Utils;
-import org.eclipse.californium.core.coap.MediaTypeRegistry;
-import org.eclipse.californium.core.coap.Request;
-import org.eclipse.californium.core.coap.CoAP;
-import org.eclipse.californium.core.coap.Response;
+import org.eclipse.californium.core.coap.*;
 import org.eclipse.californium.core.config.CoapConfig;
 import org.eclipse.californium.core.network.CoapEndpoint;
+import org.eclipse.californium.core.network.interceptors.MessageInterceptor;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
 import org.eclipse.californium.core.server.resources.CoapExchange;
 import org.eclipse.californium.core.CoapResource;
@@ -24,6 +22,44 @@ import java.nio.ByteBuffer;
 
 @org.springframework.context.annotation.Configuration
 public class CoapServerConfig {
+
+    static class MidTokenLogger implements MessageInterceptor {
+        private static void log(String p, Message m) {
+            System.out.printf("%s type=%s MID=%d token=%s%n",
+                    p, m.getType(), m.getMID(), m.getTokenString());
+        }
+
+        @Override
+        public void sendRequest(Request request) {
+
+        }
+
+        @Override
+        public void sendResponse(Response response) {
+
+        }
+
+        @Override
+        public void sendEmptyMessage(EmptyMessage message) {
+
+        }
+
+        @Override
+        public void receiveRequest(Request request) {
+
+        }
+
+        @Override
+        public void receiveResponse(Response response) {
+
+        }
+
+        @Override
+        public void receiveEmptyMessage(EmptyMessage message) {
+
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(CoapServerConfig.class);
     private CoapServer server;
 
@@ -75,18 +111,18 @@ public class CoapServerConfig {
                 exchange.accept();
 
                 // 실제 응답은 별도 스레드 또는 비동기적으로 처리
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(100); // 작업 지연을 시뮬레이션
-                        Response response = new Response(CoAP.ResponseCode.CREATED);
-                        response.setPayload("hello");
-                        log.info("echo response: {}", Utils.toHexString(response.getPayload()));
-                        log.info("echo response: {}", response.getMID());
-                        exchange.respond(response);
-                    } catch (InterruptedException e) {
-                        log.error("Response thread interrupted", e);
-                    }
-                }).start();
+
+                try {
+                    Thread.sleep(100); // 작업 지연을 시뮬레이션
+                    Response response = new Response(CoAP.ResponseCode.CREATED);
+                    response.setPayload("hello");
+                    log.info("echo response: {}", Utils.toHexString(response.getPayload()));
+                    log.info("echo response: {}", response.getMID());
+                    MidTokenLogger.log("echo", response);
+                    exchange.respond(response);
+                } catch (InterruptedException e) {
+                    log.error("Response thread interrupted", e);
+                }
             }});
 
         server.start();
