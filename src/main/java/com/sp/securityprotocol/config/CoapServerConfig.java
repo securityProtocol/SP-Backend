@@ -107,19 +107,11 @@ public class CoapServerConfig {
         server.add(new CoapResource("echo") {
             @Override
             public void handlePOST(CoapExchange exchange) {
-                // 먼저 빈 ACK를 보내 요청을 수락
-                exchange.accept();
-
                 // 실제 응답은 별도 스레드 또는 비동기적으로 처리
 
                 try {
-                    Thread.sleep(100); // 작업 지연을 시뮬레이션
-                    Response response = new Response(CoAP.ResponseCode.CREATED);
-                    response.setPayload("hello");
-                    log.info("echo response: {}", Utils.toHexString(response.getPayload()));
-                    log.info("echo response: {}", response.getMID());
-                    exchange.respond(response);
-                } catch (InterruptedException e) {
+                    exchange.respond(CoAP.ResponseCode.CONTENT, "이것은 보호된 응답입니다.");
+                } catch (Exception e) {
                     log.error("Response thread interrupted", e);
                 }
             }});
@@ -155,6 +147,7 @@ public class CoapServerConfig {
                 null,                               // contextId
                 0                                   // maxUnfragmentedSize (0=default)
         );
+        ctx.setMaxUnfragmentedSize(1152);
         HashMapCtxDB db = new HashMapCtxDB();
         db.addContext(ctx);
         return db;
