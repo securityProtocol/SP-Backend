@@ -67,18 +67,29 @@ public class CoapServerConfig {
 
         // 6) 리소스 등록 (respond는 한 번만, 이후 즉시 return)
         server.add(new CoapResource("echo") {
-            @Override public void handlePOST(CoapExchange ex) {
-                try {
-                    byte[] body = ex.getRequestPayload();
-                    Integer cf = ex.getRequestOptions().getContentFormat();
-                    int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
+            @Override
+            public void handlePOST(CoapExchange ex) {
+                byte[] body = ex.getRequestPayload();
+                Integer cf = ex.getRequestOptions().getContentFormat();
+                int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
+
+                if (ex.advanced().getRequest().isConfirmable()) {
+                    ex.accept(); // 빈 ACK 먼저 (separate 강제)
+                }
+
+                java.util.concurrent.ScheduledExecutorService exec = (java.util.concurrent.ScheduledExecutorService) getExecutor(); // ✅ CoapResource 메서드
+                if (exec == null) {                    // 이론상 handler 시점엔 거의 null 아님이 정상
                     ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
-                    return;  // ✅ 이중응답/후속 예외 차단
-                } catch (Throwable t) {
-                    ex.respond(CoAP.ResponseCode.INTERNAL_SERVER_ERROR);
                     return;
                 }
+                exec.execute(() -> {
+                    try {
+                        ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
+                    } catch (Throwable ignore) { /* 완료/타임아웃이면 무시 */ }
+                });
             }
+
+
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) { ex.respond("echo-get"); }
         });
