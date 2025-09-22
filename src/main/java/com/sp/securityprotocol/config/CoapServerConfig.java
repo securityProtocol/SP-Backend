@@ -44,6 +44,8 @@ public class CoapServerConfig {
         if (props.getOscore().isEnabled()) {
             OSCoreCtxDB db = buildOscoreContext(props);
             OSCoreCoapStackFactory.useAsDefault(db);
+            ep.setCoapStackFactory(new OSCoreCoapStackFactory());
+
             log.info("CoAP OSCORE enabled (udp/{})", port);
             log.info("OSCORE cfg: sID={} rID={} salt?={} secretLen={}",
                     props.getOscore().getServerSenderIdHex(),
