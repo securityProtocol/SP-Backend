@@ -4,7 +4,7 @@ server:
 coap:
   port: 5683
   oscore:
-    enabled: true
+    enabled: false
     master-secret: "0102030405060708090A0B0C0D0E0F10"  # hex
     master-salt:   "9E7CA92223786340"                  # hex (optional)
     server-sender-id-hex: "02"
