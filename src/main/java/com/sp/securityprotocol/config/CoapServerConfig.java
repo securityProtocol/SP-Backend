@@ -6,6 +6,7 @@ import org.eclipse.californium.core.Utils;
 import org.eclipse.californium.core.coap.MediaTypeRegistry;
 import org.eclipse.californium.core.coap.Request;
 import org.eclipse.californium.core.coap.CoAP;
+import org.eclipse.californium.core.coap.Response;
 import org.eclipse.californium.core.network.CoapEndpoint;
 import org.eclipse.californium.core.network.interceptors.MessageTracer;
 import org.eclipse.californium.core.server.resources.CoapExchange;
@@ -71,17 +72,22 @@ public class CoapServerConfig {
             public void handlePOST(CoapExchange ex) {
                 byte[] body = ex.getRequestPayload();
                 Integer cf = ex.getRequestOptions().getContentFormat();
-                int fmt = (cf != null) ? cf : MediaTypeRegistry.TEXT_PLAIN;
+                int fmt = (cf != null) ? cf : MediaTypeRegistry.APPLICATION_OCTET_STREAM;
 
                 Request req = ex.advanced().getRequest();
-                log.info("echo: RX mid={}, tok={}",
-                        req.getMID(), Utils.toHexString(req.getToken()==null? new byte[0] : req.getToken().getBytes()));
 
-                // ★ 별도의 accept()/separate 없이, 한 번에 응답 (piggyback or proper separate는 스택이 결정)
-                ex.respond(CoAP.ResponseCode.CONTENT, (body != null) ? body : new byte[0], fmt);
-                // 여기서 절대 MID/Token/Type 직접 만지지 마세요.
+                Response resp = new Response(CoAP.ResponseCode.CONTENT);
+                resp.setPayload(body != null ? body : new byte[0]);
+                resp.getOptions().setContentFormat(fmt);
+
+                if (req.isConfirmable()) {
+                    resp.setType(CoAP.Type.ACK);        // piggyback ACK
+                    resp.setMID(req.getMID());          // ★ 요청 MID 복사
+                }
+                resp.setToken(req.getToken());          // ★ 요청 토큰 복사
+
+                ex.advanced().sendResponse(resp);       // advanced 경로로 전송
             }
-
             @Override public void handlePUT(CoapExchange ex) { handlePOST(ex); }
             @Override public void handleGET(CoapExchange ex) {
                 ex.respond(CoAP.ResponseCode.CONTENT, "echo-get", MediaTypeRegistry.TEXT_PLAIN);
