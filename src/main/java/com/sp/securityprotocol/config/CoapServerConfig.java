@@ -23,43 +23,6 @@ import java.nio.ByteBuffer;
 @org.springframework.context.annotation.Configuration
 public class CoapServerConfig {
 
-    static class MidTokenLogger implements MessageInterceptor {
-        private static void log(String p, Message m) {
-            System.out.printf("%s type=%s MID=%d token=%s%n",
-                    p, m.getType(), m.getMID(), m.getTokenString());
-        }
-
-        @Override
-        public void sendRequest(Request request) {
-
-        }
-
-        @Override
-        public void sendResponse(Response response) {
-            log.info("sendResponse {}", response.getMID());
-        }
-
-        @Override
-        public void sendEmptyMessage(EmptyMessage message) {
-
-        }
-
-        @Override
-        public void receiveRequest(Request request) {
-
-        }
-
-        @Override
-        public void receiveResponse(Response response) {
-
-        }
-
-        @Override
-        public void receiveEmptyMessage(EmptyMessage message) {
-
-        }
-    }
-
     private static final Logger log = LoggerFactory.getLogger(CoapServerConfig.class);
     private CoapServer server;
 
@@ -83,14 +46,6 @@ public class CoapServerConfig {
             OSCoreCtxDB db = buildOscoreContext(props);
             OSCoreCoapStackFactory.useAsDefault(db);
 //            ep.setCoapStackFactory(new OSCoreCoapStackFactory());
-
-            log.info("CoAP OSCORE enabled (udp/{})", port);
-            log.info("OSCORE cfg: sID={} rID={} salt?={} secretLen={}",
-                    props.getOscore().getServerSenderIdHex(),
-                    props.getOscore().getServerRecipientIdHex(),
-                    props.getOscore().getMasterSalt()!=null,
-                    props.getOscore().getMasterSecret()!=null
-                            ? props.getOscore().getMasterSecret().replaceAll("\\s+","").length()/2 : 0);
         } else {
             log.info("CoAP plaintext (udp/{})", port);
         }

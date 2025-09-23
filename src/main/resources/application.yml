@@ -15,24 +15,3 @@ management:
     web:
       exposure:
         include: "health,info"
-
-logging:
-  level:
-    # 우리 패키지(로그 찍는 곳)
-    com.sp.securityprotocol: DEBUG
-
-    # Californium 핵심
-    org.eclipse.californium: INFO
-    org.eclipse.californium.elements: DEBUG
-
-    # 🔎 직렬화(UDP 바이트 만들기 직전 상태)
-    org.eclipse.californium.core.network.serialization: TRACE
-
-    # 🔎 매칭/신뢰/스택 경로 (Type/MID/Token이 언제 셋업되는지 확인)
-    org.eclipse.californium.core.network.matcher: TRACE
-    org.eclipse.californium.core.network.stack.ReliabilityLayer: TRACE
-    org.eclipse.californium.core.network.stack.BaseCoapStack: TRACE
-    org.eclipse.californium.core.network.CoapEndpoint: TRACE
-
-    # 🔐 OSCORE 레이어 흐름
-    org.eclipse.californium.oscore: TRACE
