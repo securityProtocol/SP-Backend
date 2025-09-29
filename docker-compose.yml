@@ -23,6 +23,9 @@ services:
       timeout: 3s
       retries: 12
 
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+
     networks: [appnet]
 
   nginx:
