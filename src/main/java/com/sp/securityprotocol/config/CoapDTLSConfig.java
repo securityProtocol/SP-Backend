@@ -167,12 +167,26 @@ public class CoapDTLSConfig {
 
     private InputStream resource(String location) throws Exception {
         if (location == null) return null;
+
+        // classpath:
         if (location.startsWith("classpath:")) {
             String path = location.substring("classpath:".length());
-            return this.getClass().getResourceAsStream(path.startsWith("/") ? path : "/" + path);
+            InputStream in = getClass().getResourceAsStream(path.startsWith("/") ? path : "/" + path);
+            if (in == null) throw new java.io.FileNotFoundException("classpath resource not found: " + path);
+            return in;
         }
-        return new java.io.FileInputStream(location);
+
+        // file: 또는 일반 파일 경로
+        if (location.startsWith("file:")) {
+            // 안전하게 URI로 파싱 후 파일 열기
+            java.net.URI uri = java.net.URI.create(location);
+            return java.nio.file.Files.newInputStream(java.nio.file.Paths.get(uri));
+        } else {
+            // 순수 경로
+            return new java.io.FileInputStream(location);
+        }
     }
+
 
     /* ========= Props ========= */
 
