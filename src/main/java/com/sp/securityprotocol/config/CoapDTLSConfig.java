@@ -71,6 +71,7 @@ public class CoapDTLSConfig {
         server.add(new CoapResource("echo") {
             @Override public void handlePOST(CoapExchange ex) {
                 byte[] pl = ex.getRequestPayload();
+                log.info("ECHO payload: {}", new String(pl, java.nio.charset.StandardCharsets.UTF_8));
                 int cf = ex.getRequestOptions().getContentFormat();
                 Response r = new Response(CoAP.ResponseCode.CONTENT);
                 r.setPayload(pl);
