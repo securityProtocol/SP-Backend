@@ -44,7 +44,7 @@ public class CoapServerConfig {
         // 3) OSCORE: "static 등록"만 사용 (per-endpoint 팩토리 혼용 금지)
         if (props.getOscore().isEnabled()) {
             OSCoreCtxDB db = buildOscoreContext(props);
-            OSCoreCoapStackFactory.useAsDefault(db);
+//            OSCoreCoapStackFactory.useAsDefault(db);
 //            ep.setCoapStackFactory(new OSCoreCoapStackFactory());
         } else {
             log.info("CoAP plaintext (udp/{})", port);
