@@ -10,7 +10,7 @@ services:
     expose:
       - "8080"   # 문서화용. 없어도 컨테이너끼리 통신됨
       - "5683/udp"
-      - "9001/udp"
+      - "9001:9001/udp"
 
     environment:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75
