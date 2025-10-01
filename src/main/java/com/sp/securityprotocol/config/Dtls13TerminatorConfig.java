@@ -105,7 +105,7 @@ public class Dtls13TerminatorConfig {
                 if (Security.getProvider(p.getProvider()) == null) {
                     // 예: Security.addProvider(new com.wolfssl.provider.jsse.WolfSSLProvider());
                     // 실제 클래스는 wolfJSSE 배포물에 맞게 추가하세요.
-                    Class<?> provClazz = Class.forName("com.wolfssl.provider.WolfSSLProvider");
+                    Class<?> provClazz = Class.forName("com.wolfssl.provider.jsse.WolfSSLProvider");
                     Security.addProvider((java.security.Provider)provClazz.getDeclaredConstructor().newInstance());
                 }
             } catch (Throwable t) {
