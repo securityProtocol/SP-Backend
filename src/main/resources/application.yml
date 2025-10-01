@@ -10,33 +10,33 @@ coap:
     server-sender-id-hex: "02"
     server-recipient-id-hex: "01"
 
-#  dtls:
-#    enabled: true
-#    port: 9001
-#    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
-#    store-pass: changeit
-#    key-pass: changeit
-#    # aesgcm | aes256gcm | chacha20
-#    cipher: [aesgcm, aes256gcm, chacha20]
-#    mtu: 1200
-#    require-client-auth: false
-
-  dtls13:
-    listen-port: 9001
-    upstream-host: 127.0.0.1
-    upstream-port: 5683
-    keystore-path: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
-    keystore-type: PKCS12
-    keystore-pass: changeit
+  dtls:
+    enabled: true
+    port: 9001
+    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
+    store-pass: changeit
     key-pass: changeit
-    enabled-ciphers:
-      - TLS_AES_128_GCM_SHA256
-      - TLS_AES_256_GCM_SHA384
-      - TLS_CHACHA20_POLY1305_SHA256
+    # aesgcm | aes256gcm | chacha20
+    cipher: [aesgcm, aes256gcm, chacha20]
     mtu: 1200
-    max-sessions: 20000
-    session-idle-millis: 60000
-    provider: wolfJSSE
+    require-client-auth: false
+
+#  dtls13:
+#    listen-port: 9001
+#    upstream-host: 127.0.0.1
+#    upstream-port: 5683
+#    keystore-path: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
+#    keystore-type: PKCS12
+#    keystore-pass: changeit
+#    key-pass: changeit
+#    enabled-ciphers:
+#      - TLS_AES_128_GCM_SHA256
+#      - TLS_AES_256_GCM_SHA384
+#      - TLS_CHACHA20_POLY1305_SHA256
+#    mtu: 1200
+#    max-sessions: 20000
+#    session-idle-millis: 60000
+#    provider: wolfJSSE
 
 
 management:
