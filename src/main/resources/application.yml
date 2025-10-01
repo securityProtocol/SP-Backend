@@ -10,16 +10,16 @@ coap:
     server-sender-id-hex: "02"
     server-recipient-id-hex: "01"
 
-  dtls:
-    enabled: true
-    port: 9001
-    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
-    store-pass: changeit
-    key-pass: changeit
-    # aesgcm | aes256gcm | chacha20
-    cipher: [aesgcm, aes256gcm, chacha20]
-    mtu: 1200
-    require-client-auth: false
+#  dtls:
+#    enabled: true
+#    port: 9001
+#    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
+#    store-pass: changeit
+#    key-pass: changeit
+#    # aesgcm | aes256gcm | chacha20
+#    cipher: [aesgcm, aes256gcm, chacha20]
+#    mtu: 1200
+#    require-client-auth: false
 
   dtls13:
     listen-port: 9001
