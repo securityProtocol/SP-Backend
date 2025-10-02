@@ -3,12 +3,10 @@ FROM ubuntu:24.04 AS wolfbuild
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential autoconf automake libtool pkg-config git ca-certificates \
-    openjdk-21-jdk maven wget unzip \
+    openjdk-21-jdk maven cmake make wget unzip file \
     && rm -rf /var/lib/apt/lists/*
 
 ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
-# (arm64일 때 자동 경로가 다를 수 있으니, 필요시 docker build ARG/TARGETARCH로 분기해도 됨)
-
 WORKDIR /build
 
 # 1-1) wolfSSL 소스 빌드 (DTLS 1.3 활성)
@@ -20,26 +18,27 @@ RUN ./autogen.sh && \
       --enable-tls13 \
       --enable-opensslextra \
       --enable-shared && \
-    make -j$(nproc) && make install
-# 설치 경로 기본 /usr/local, so: /usr/local/lib/libwolfssl.so
+    make -j"$(nproc)" && make install
 
-# 1-2) wolfSSL JNI/JSSE 빌드 (wolfJSSE)
+# 1-2) wolfSSL JNI/JSSE (wolfssljni) 빌드 - CMake 사용
 WORKDIR /build
 RUN git clone --depth=1 https://github.com/wolfSSL/wolfssljni.git
 WORKDIR /build/wolfssljni
-# 환경에 따라 autogen.sh가 없는 버전도 있어 ./autogen.sh 있으면 실행
-RUN [ -f ./autogen.sh ] && ./autogen.sh || true
-RUN ./configure --with-wolfssl=/usr/local \
-    && make -j$(nproc)
+# configure 스크립트 없는 버전 대비: CMake로 빌드
+RUN cmake -S . -B build \
+      -DWITH_WOLFSSL=/usr/local \
+      -DBUILD_JSSE=ON \
+      -DBUILD_EXAMPLES=OFF && \
+    cmake --build build -j"$(nproc)"
 
-# 산출물 위치 정리
-# (프로젝트 버전에 따라 출력 경로가 조금 다를 수 있음: 아래 find로 수집)
+# 산출물 모으기 (경로가 버전에 따라 다를 수 있어 find로 수집)
 RUN mkdir -p /out/wolfssl && \
     cp -av /usr/local/lib/libwolfssl.so* /out/wolfssl/ || true && \
-    find . -name "libwolfssljni.so*" -exec cp -av {} /out/wolfssl/ \; && \
+    find build -name "libwolfssljni.so*" -exec cp -av {} /out/wolfssl/ \; || true && \
     find . -name "wolfssl-jsse.jar" -exec cp -av {} /out/wolfssl/ \; || true && \
     find . -name "wolfssljni.jar" -exec cp -av {} /out/wolfssl/ \; || true && \
     ls -l /out/wolfssl
+
 
 # ---- 2) Build stage: Gradle로 앱 빌드 ----
 FROM gradle:8.9-jdk21 AS appbuild
