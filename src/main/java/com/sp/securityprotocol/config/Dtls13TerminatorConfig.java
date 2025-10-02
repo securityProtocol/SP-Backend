@@ -27,6 +27,13 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * 외부 DTLS 1.3(UDP 9001 등) ⇄ 내부 평문 CoAP(udp/5683) 프록시용 Terminator.
+ * - DTLS 1.3은 JSSE Provider(wolfSSL 등)가 필요. (JAR/so 배치 필수)
+ * - 앱 실행 전, 컨테이너/호스트에 아래가 있어야 함:
+ *   * 클래스패스: wolfssl-jsse*.jar, wolfssljni*.jar  (예: -Dloader.path=/opt/wolfssl)
+ *   * 네이티브:   libwolfssl.so, libwolfssljni.so   (예: LD_LIBRARY_PATH=/opt/wolfssl)
+ */
 @Configuration
 public class Dtls13TerminatorConfig {
 
@@ -148,18 +155,18 @@ public class Dtls13TerminatorConfig {
         /* ---------- Provider / 키/트러스트 빌더 ---------- */
 
         private Provider ensureDtls13Provider(String desiredProviderName) {
-            // 이미 등록된 Provider 중 선호 이름이 있으면 그대로 사용
+            // 0) 선호 이름 우선
             if (desiredProviderName != null) {
                 Provider pv = Security.getProvider(desiredProviderName);
                 if (pv != null) {
                     try {
                         SSLContext.getInstance("DTLSv1.3", pv);
                         return pv;
-                    } catch (Exception ignore) { /* 실제 DTLSv1.3 미지원이면 계속 진행 */ }
+                    } catch (Exception ignore) { /* 미지원이면 계속 탐색 */ }
                 }
             }
 
-            // 현재 JVM에 로드된 Provider에서 DTLSv1.3 지원 탐색
+            // 1) 현재 로드된 Provider 중 DTLSv1.3 지원 탐색
             for (Provider pv : Security.getProviders()) {
                 try {
                     SSLContext.getInstance("DTLSv1.3", pv);
@@ -167,7 +174,7 @@ public class Dtls13TerminatorConfig {
                 } catch (Exception ignore) {}
             }
 
-            // wolfSSL 배포본별 후보 FQCN 시도
+            // 2) wolfSSL 계열 FQCN 시도(패키징 변형 대응)
             String[] candidates = new String[] {
                     "com.wolfssl.provider.jsse.WolfSSLProvider",
                     "com.wolfssl.provider.WolfSSLProvider",
@@ -184,11 +191,11 @@ public class Dtls13TerminatorConfig {
                 } catch (ClassNotFoundException e) {
                     // 다음 후보
                 } catch (Throwable t) {
-                    // 찾았지만 초기화 실패/미지원 등 → 다음 후보
+                    log.debug("Provider candidate '{}' load error: {}", fqcn, t.toString());
                 }
             }
 
-            // 모두 실패 → 진단 메시지
+            // 3) 모두 실패 → 진단 메시지
             StringBuilder diag = new StringBuilder();
             diag.append("No JSSE Provider for DTLSv1.3 found.\n")
                     .append("Loaded providers: ");
@@ -233,10 +240,10 @@ public class Dtls13TerminatorConfig {
         /* ---------- 이벤트 루프 / 세션 ---------- */
 
         private void eventLoop() {
-            ByteBuffer netBuf = ByteBuffer.allocateDirect(p.getMtu()); // 수신 암호문 버퍼
+            final ByteBuffer scratch = ByteBuffer.allocateDirect(p.getMtu()); // 수신 암호문 버퍼
             while (running) {
                 try {
-                    int n = selector.select();
+                    int n = selector.select(250); // 250ms 타임아웃으로 깨어나기
                     if (!running) break;
                     if (n == 0) continue;
 
@@ -247,13 +254,13 @@ public class Dtls13TerminatorConfig {
                         if (!key.isValid()) continue;
 
                         if (key.isReadable()) {
-                            netBuf.clear();
-                            SocketAddress remote = ch.receive(netBuf);
+                            scratch.clear();
+                            SocketAddress remote = ch.receive(scratch);
                             if (remote == null) continue;
-                            netBuf.flip();
+                            scratch.flip();
 
                             Session s = sessions.computeIfAbsent(remote, r -> new Session(r, sslCtx, p));
-                            s.onDatagramFromClient(netBuf);
+                            s.onDatagramFromClient(scratch);
                         }
                     }
                 } catch (Throwable t) {
@@ -266,10 +273,10 @@ public class Dtls13TerminatorConfig {
         private class Session {
             final SocketAddress client;
             final SSLEngine engine;
-            final ByteBuffer appIn = ByteBuffer.allocate(16 * 1024);      // 평문(CoAP) 입력
-            final ByteBuffer appOut = ByteBuffer.allocate(16 * 1024);     // 평문(CoAP) 출력
-            final ByteBuffer netIn = ByteBuffer.allocateDirect(p.getMtu());
-            final ByteBuffer netOut = ByteBuffer.allocateDirect(p.getMtu());
+            ByteBuffer appIn = ByteBuffer.allocate(16 * 1024);      // 평문(CoAP) 입력
+            ByteBuffer appOut = ByteBuffer.allocate(16 * 1024);     // 평문(CoAP) 출력
+            ByteBuffer netIn = ByteBuffer.allocateDirect(p.getMtu());
+            ByteBuffer netOut = ByteBuffer.allocateDirect(p.getMtu());
 
             Session(SocketAddress client, SSLContext ctx, D13Props props) {
                 this.client = client;
@@ -284,6 +291,8 @@ public class Dtls13TerminatorConfig {
                 try {
                     engine.getClass().getMethod("setDTLSMtu", int.class).invoke(engine, props.getMtu());
                 } catch (Exception ignore) {}
+
+                log.debug("[{}] session created", client);
             }
 
             void onDatagramFromClient(ByteBuffer dat) throws Exception {
@@ -304,6 +313,7 @@ public class Dtls13TerminatorConfig {
                                         byte[] req = new byte[appIn.remaining()];
                                         appIn.get(req);
                                         appIn.clear();
+
                                         byte[] resp = queryUpstream(req); // 평문 CoAP로 전달
                                         if (resp != null) sendAppToClient(ByteBuffer.wrap(resp));
                                     }
@@ -311,7 +321,7 @@ public class Dtls13TerminatorConfig {
                                 case NEED_UNWRAP -> { /* 계속 수신 */ }
                             }
                         }
-                        case BUFFER_OVERFLOW -> growAppIn();
+                        case BUFFER_OVERFLOW -> { growAppIn(); }
                         case BUFFER_UNDERFLOW -> { return; } // 더 받기
                         case CLOSED -> { close(); return; }
                     }
@@ -319,14 +329,20 @@ public class Dtls13TerminatorConfig {
             }
 
             private void sendAppToClient(ByteBuffer plain) throws Exception {
-                netOut.clear();
                 while (plain.hasRemaining()) {
+                    netOut.clear();
                     SSLEngineResult res = engine.wrap(plain, netOut);
-                    if (res.getStatus() == SSLEngineResult.Status.CLOSED) { close(); return; }
-                    if (res.getStatus() == SSLEngineResult.Status.BUFFER_OVERFLOW) { growNetOut(); continue; }
+                    switch (res.getStatus()) {
+                        case OK -> {
+                            netOut.flip();
+                            if (netOut.hasRemaining()) ch.send(netOut, client);
+                            if (res.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.NEED_TASK) runTasks();
+                        }
+                        case BUFFER_OVERFLOW -> { growNetOut(); }
+                        case CLOSED -> { close(); return; }
+                        case BUFFER_UNDERFLOW -> { /* wrap에서는 거의 없음 */ }
+                    }
                 }
-                netOut.flip();
-                ch.send(netOut, client);
             }
 
             private void flushToClient() throws Exception {
@@ -341,11 +357,32 @@ public class Dtls13TerminatorConfig {
 
             private void runTasks() {
                 Runnable r;
-                while ((r = engine.getDelegatedTask()) != null) r.run();
+                while ((r = engine.getDelegatedTask()) != null) {
+                    try { r.run(); } catch (Throwable t) { log.debug("delegated task error: {}", t.toString()); }
+                }
             }
 
-            private void growAppIn() { /* 필요 시 버퍼 확장 구현 */ }
-            private void growNetOut() { /* 필요 시 버퍼 확장 구현 */ }
+            private void growAppIn() {
+                int old = appIn.capacity();
+                int neu = Math.min(old * 2, 1 << 20); // 최대 1MB
+                if (neu == old) return;
+                ByteBuffer bigger = ByteBuffer.allocate(neu);
+                appIn.flip();
+                bigger.put(appIn);
+                appIn = bigger;
+                log.debug("appIn buffer grown: {} -> {}", old, neu);
+            }
+
+            private void growNetOut() {
+                int old = netOut.capacity();
+                int neu = Math.min(old * 2, 64 * 1024); // DTLS 레코드 크기 고려, 64KB 제한
+                if (neu == old) return;
+                ByteBuffer bigger = ByteBuffer.allocateDirect(neu);
+                netOut.flip();
+                bigger.put(netOut);
+                netOut = bigger;
+                log.debug("netOut buffer grown: {} -> {}", old, neu);
+            }
 
             private byte[] queryUpstream(byte[] req) {
                 try (DatagramSocket s = new DatagramSocket()) {
@@ -366,6 +403,7 @@ public class Dtls13TerminatorConfig {
 
             void close() {
                 try { engine.closeOutbound(); } catch (Exception ignore) {}
+                log.debug("[{}] session closed", client);
             }
         }
     }
