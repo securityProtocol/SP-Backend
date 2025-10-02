@@ -108,6 +108,7 @@ public class Dtls13TerminatorConfig {
 
         @PostConstruct
         public void start() throws Exception {
+            log.info("Starting DTLS 1.3 terminator...");
             if (!p.isEnabled()) {
                 log.info("DTLS 1.3 terminator disabled.");
                 return;
@@ -155,60 +156,107 @@ public class Dtls13TerminatorConfig {
         /* ---------- Provider / 키/트러스트 빌더 ---------- */
 
         private Provider ensureDtls13Provider(String desiredProviderName) {
-            // 0) 선호 이름 우선
+            // 0) 먼저 현재 등록된 Provider 중에서 DTLSv1.3 가능한지 탐색
             if (desiredProviderName != null) {
-                Provider pv = Security.getProvider(desiredProviderName);
-                if (pv != null) {
+                Provider got = Security.getProvider(desiredProviderName);
+                log.info("Desired JSSE provider '{}' registered: {}", desiredProviderName, got != null ? got.getName() : "not found");
+                if (got != null) {
                     try {
-                        SSLContext.getInstance("DTLSv1.3", pv);
-                        return pv;
-                    } catch (Exception ignore) { /* 미지원이면 계속 탐색 */ }
+                        SSLContext.getInstance("DTLSv1.3", got);
+                        return got;
+                    } catch (Exception ignore) {
+                        // 이름은 맞는데 DTLSv1.3 미지원 → 계속 진행
+                    }
+                } else {
+                    // 이름으로 못 찾은 경우에도 아래에서 동적 로드 시도
+                    log.info("Desired JSSE provider '{}' not registered yet, trying to load dynamically.", desiredProviderName);
                 }
             }
-
-            // 1) 현재 로드된 Provider 중 DTLSv1.3 지원 탐색
-            for (Provider pv : Security.getProviders()) {
+            for (Provider p0 : Security.getProviders()) {
                 try {
-                    SSLContext.getInstance("DTLSv1.3", pv);
-                    return pv;
+                    log.info("Checking provider: {}", p0.getName());
+                    SSLContext.getInstance("DTLSv1.3", p0);
+                    log.info("Found DTLSv1.3 support from already-registered provider: {}", p0.getName());
+                    return p0;
                 } catch (Exception ignore) {}
             }
 
-            // 2) wolfSSL 계열 FQCN 시도(패키징 변형 대응)
-            String[] candidates = new String[] {
-                    "com.wolfssl.provider.jsse.WolfSSLProvider",
+            // 1) wolfSSL 후보 FQCN들
+            final String[] candidates = new String[] {
+                    "com.wolfssl.provider.jsse.WolfSSLProvider",  // 최신 JNI/JSSE 배포에서 주로 이 형태
                     "com.wolfssl.provider.WolfSSLProvider",
                     "com.wolfssl.jsse.WolfSSLProvider",
                     "wolfssl.provider.jsse.WolfSSLProvider"
             };
+
+            // 2) 우선 현재 classloader로 로드 시도
             for (String fqcn : candidates) {
                 try {
                     Class<?> c = Class.forName(fqcn);
                     Provider pv = (Provider) c.getDeclaredConstructor().newInstance();
                     Security.addProvider(pv);
                     SSLContext.getInstance("DTLSv1.3", pv); // 실제 지원 확인
+                    log.info("Loaded JSSE provider via current classloader: {}", fqcn);
                     return pv;
                 } catch (ClassNotFoundException e) {
-                    // 다음 후보
+                    // 다음 시도
                 } catch (Throwable t) {
-                    log.debug("Provider candidate '{}' load error: {}", fqcn, t.toString());
+                    log.debug("Provider init failed for {}: {}", fqcn, t.toString());
                 }
             }
 
-            // 3) 모두 실패 → 진단 메시지
+            // 3) /opt/wolfssl 아래 JAR을 직접 로더로 붙여서 다시 시도
+            java.nio.file.Path libDir = java.nio.file.Paths.get(
+                    System.getProperty("wolfssl.dir", "/opt/wolfssl")
+            );
+            java.util.List<java.net.URL> jarUrls = new java.util.ArrayList<>();
+            try (java.util.stream.Stream<java.nio.file.Path> s =
+                         java.nio.file.Files.exists(libDir)
+                                 ? java.nio.file.Files.list(libDir)
+                                 : java.util.stream.Stream.empty()) {
+                s.filter(p -> p.toString().endsWith(".jar")).forEach(p -> {
+                    try { jarUrls.add(p.toUri().toURL()); } catch (Exception ignore) {}
+                });
+            } catch (Exception ignore) {}
+
+            if (!jarUrls.isEmpty()) {
+                try (java.net.URLClassLoader ucl =
+                             new java.net.URLClassLoader(jarUrls.toArray(new java.net.URL[0]),
+                                     Thread.currentThread().getContextClassLoader())) {
+                    for (String fqcn : candidates) {
+                        try {
+                            Class<?> c = java.lang.Class.forName(fqcn, true, ucl);
+                            Provider pv = (Provider) c.getDeclaredConstructor().newInstance();
+                            Security.addProvider(pv);
+                            SSLContext.getInstance("DTLSv1.3", pv); // 지원 검증
+                            log.info("Loaded JSSE provider via /opt/wolfssl jars: {}", fqcn);
+                            return pv;
+                        } catch (ClassNotFoundException e) {
+                            // 다음 후보
+                        } catch (Throwable t) {
+                            log.debug("URLClassLoader init failed for {}: {}", fqcn, t.toString());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("Failed to create URLClassLoader for /opt/wolfssl: {}", e.toString());
+                }
+            } else {
+                log.warn("No JARs found under {}", libDir);
+            }
+
+            // 4) 모두 실패 → 진단 메시지
             StringBuilder diag = new StringBuilder();
-            diag.append("No JSSE Provider for DTLSv1.3 found.\n")
-                    .append("Loaded providers: ");
+            diag.append("No JSSE Provider for DTLSv1.3 found.\nLoaded providers: ");
             for (Provider pv : Security.getProviders()) diag.append(pv.getName()).append(" ");
-
             diag.append("\nHint:\n")
-                    .append(" - wolfssl-jsse.jar, wolfssljni.jar 가 클래스패스(-Dloader.path=/opt/wolfssl)에 있어야 합니다.\n")
-                    .append(" - libwolfssl.so, libwolfssljni.so 가 LD_LIBRARY_PATH(/opt/wolfssl)에 있어야 합니다.\n")
-                    .append(" - 컨테이너/호스트 아키텍처와 .so 아키텍처(x86_64/arm64)가 일치해야 합니다.\n")
-                    .append(" - 사용 중인 wolfSSL 배포본의 Provider FQCN을 확인해 주세요.\n");
-
+                    .append(" - /opt/wolfssl 에 wolfssl-jsse*.jar, wolfssljni*.jar 이 있어야 합니다.\n")
+                    .append(" - /opt/wolfssl 에 libwolfssl.so, libwolfssljni.so 가 있어야 합니다.\n")
+                    .append(" - LD_LIBRARY_PATH=/opt/wolfssl, -Dloader.path=/opt/wolfssl 가 설정돼야 합니다.\n")
+                    .append(" - 아키텍처(x86_64/arm64)가 컨테이너와 일치해야 합니다.\n")
+                    .append(" - provider 이름을 꼭 지정할 필요는 없습니다. (설정에서 coap.dtls13.provider를 비우면 자동탐색)\n");
             throw new IllegalStateException(diag.toString());
         }
+
 
         private KeyManager[] buildKeyManagers() throws KeyStoreException, CertificateException,
                 IOException, NoSuchAlgorithmException, UnrecoverableKeyException {
