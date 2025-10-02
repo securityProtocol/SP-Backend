@@ -10,34 +10,34 @@ coap:
     server-sender-id-hex: "02"
     server-recipient-id-hex: "01"
 
-#  dtls:
-#    enabled: true
-#    port: 9001
-#    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
-#    store-pass: changeit
-#    key-pass: changeit
-#    # aesgcm | aes256gcm | chacha20
-#    cipher: [aesgcm, aes256gcm, chacha20]
-#    mtu: 1200
-#    require-client-auth: false
-
-  dtls13:
+  dtls:
     enabled: true
-    listen-port: 9001
-    provider: wolfJSSE
-    protocol: DTLSv1.3
-    # 필수 AEAD 3종 허용
-    ciphers:
-      - TLS_AES_128_GCM_SHA256
-      - TLS_AES_256_GCM_SHA384
-      - TLS_CHACHA20_POLY1305_SHA256
-    p12: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12   # 또는 /certs/server.p12 등
-    p12-pass: changeit
-    need-client-auth: false
+    port: 9001
+    keystore: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12
+    store-pass: changeit
+    key-pass: changeit
+    # aesgcm | aes256gcm | chacha20
+    cipher: [aesgcm, aes256gcm, chacha20]
     mtu: 1200
-    upstream-host: 127.0.0.1
-    upstream-port: 5683
-    upstream-timeout-ms: 2000
+    require-client-auth: false
+
+#  dtls13:
+#    enabled: true
+#    listen-port: 9001
+#    provider: wolfJSSE
+#    protocol: DTLSv1.3
+#    # 필수 AEAD 3종 허용
+#    ciphers:
+#      - TLS_AES_128_GCM_SHA256
+#      - TLS_AES_256_GCM_SHA384
+#      - TLS_CHACHA20_POLY1305_SHA256
+#    p12: file:/etc/letsencrypt/live/securityprotocol.store/coaps-server.p12   # 또는 /certs/server.p12 등
+#    p12-pass: changeit
+#    need-client-auth: false
+#    mtu: 1200
+#    upstream-host: 127.0.0.1
+#    upstream-port: 5683
+#    upstream-timeout-ms: 2000
 
 
 management:
