@@ -10,7 +10,7 @@ services:
     expose:
       - "8080"   # 문서화용. 없어도 컨테이너끼리 통신됨
       - "5683/udp"
-      - "9001:9001/udp"
+      - "9001/udp"
 
     environment:
       - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75
@@ -39,8 +39,7 @@ services:
       - "8000:8000/udp"
       - "8883:8883/tcp"
       - "5683:5683/udp"
-#      - "9001:9001/udp"
-
+      - "9001:9001/udp"
     volumes:
       - ./nginx/default.conf:/etc/nginx/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
