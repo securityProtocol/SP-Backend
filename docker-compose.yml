@@ -34,6 +34,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    network_mode: host
     ports:
       - "8000:8000/tcp"
       - "8000:8000/udp"
