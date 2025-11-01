@@ -63,6 +63,7 @@ public class MqttEchoRunner implements CommandLineRunner, MqttCallbackExtended {
     }
 
     @Override public void messageArrived(String topic, MqttMessage in) {
+        System.out.println("[MQTT] arrived topic=" + topic + " payload=" + new String(in.getPayload()));
         if (topic.equals(props.requestTopic())) {
             try {
                 MqttMessage out = new MqttMessage(in.getPayload());
