@@ -27,7 +27,8 @@ public class MqttEchoRunner implements CommandLineRunner, MqttCallbackExtended {
 
         client = new MqttClient(uri, props.clientId(), new MemoryPersistence());
         client.setCallback(this);
-
+        System.out.println("[MQTT] connecting to " + uri + " as clientId=" + props.clientId());
+        System.out.println("[MQTT] requestTopic=" + props.requestTopic() + " responseTopic=" + props.responseTopic());
         MqttConnectOptions opt = new MqttConnectOptions();
         opt.setCleanSession(true);
         opt.setAutomaticReconnect(true);
