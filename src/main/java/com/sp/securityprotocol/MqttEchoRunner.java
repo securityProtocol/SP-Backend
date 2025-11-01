@@ -63,6 +63,7 @@ public class MqttEchoRunner implements CommandLineRunner, MqttCallbackExtended {
         } catch (MqttException e) {
             System.err.println("[MQTT] subscribe failed: " + e.getMessage());
         }
+
     }
 
     @Override public void connectionLost(Throwable cause) {
