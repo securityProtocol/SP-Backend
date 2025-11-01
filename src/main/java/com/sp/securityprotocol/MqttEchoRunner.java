@@ -47,14 +47,21 @@ public class MqttEchoRunner implements CommandLineRunner, MqttCallbackExtended {
 
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
-        if (subscribed.compareAndSet(false, true)) {
-            try {
-                client.subscribe(props.requestTopic(), props.qos());
-                System.out.println("[MQTT] subscribed: " + props.requestTopic());
-            } catch (MqttException e) {
-                subscribed.set(false);
-                System.err.println("[MQTT] subscribe failed: " + e.getMessage());
-            }
+//        if (subscribed.compareAndSet(false, true)) {
+//            try {
+//                client.subscribe(props.requestTopic(), props.qos());
+//                System.out.println("[MQTT] subscribed: " + props.requestTopic());
+//            } catch (MqttException e) {
+//                subscribed.set(false);
+//                System.err.println("[MQTT] subscribe failed: " + e.getMessage());
+//            }
+//        }
+        System.out.println("[MQTT] connected " + (reconnect ? "(reconnect) " : "") + "to " + serverURI);
+        try {
+            client.subscribe("lab/#", props.qos());  // ← 임시 스니프
+            System.out.println("[MQTT] subscribed: lab/# (sniff)");
+        } catch (MqttException e) {
+            System.err.println("[MQTT] subscribe failed: " + e.getMessage());
         }
     }
 
