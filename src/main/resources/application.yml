@@ -37,7 +37,17 @@ coap:
 #    upstream-host: 127.0.0.1
 #    upstream-port: 5683
 #    upstream-timeout-ms: 2000
-
+app:
+  mqtt:
+    host: securityprotocol.store
+    port: 8883           # wss를 쓰면 443
+    client-id: mqtt-echo-server
+    username: demo
+    password: D138138*
+    request-topic: lab/echo
+    response-topic: lab/echo/response
+    qos: 0
+    use-websocket: false # true면 wss://{host}:{port}/mqtt 로 접속
 
 management:
   endpoints:
